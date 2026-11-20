@@ -1,51 +1,21 @@
-# vini.dev
+# Links · Vinicius Rocha
 
-Portfólio pessoal de **Vinicius Rocha Pacheco**, estudante de Análise e Desenvolvimento de Sistemas em busca de estágio em Desenvolvimento Back-End.
+Página de "link na bio" feita com HTML, CSS e JS puros.
 
-🔗 **Acesse:** https://vinnyrocha-dev.github.io/
+## Como publicar no GitHub Pages
 
-## Sobre o projeto
+1. No GitHub, crie um repositório público chamado `links`.
+2. Envie os arquivos `index.html`, `style.css` e `script.js` para a raiz dele.
+3. Vá em **Settings › Pages**, em "Source" escolha **Deploy from a branch**, branch `main`, pasta `/ (root)`, e salve.
+4. Em alguns minutos a página fica em: `https://vinnyrocha-dev.github.io/links/`
+5. Cole esse endereço na bio do Instagram.
 
-Site de uma página só, feito com **HTML, CSS e JavaScript puros**, sem framework. O visual segue o estilo "terminal de dev": tema escuro por padrão, com opção de tema claro.
+## Efeitos
 
-## Funcionalidades
-
-- Tema claro e escuro, com a escolha salva no navegador (localStorage)
-- Números de repositórios e seguidores buscados ao vivo na API pública do GitHub
-- Projetos carregados pela API do GitHub, com filtro por linguagem gerado automaticamente
-- Lista fixa de projetos como reserva, caso a API falhe ou estoure o limite de requisições
-- Animações de entrada ao rolar a página com IntersectionObserver
-- Botão flutuante para conversar pelo WhatsApp
-- Layout mobile first e responsivo
-
-## Acessibilidade
-
-- Tags semânticas (`header`, `nav`, `main`, `section`, `footer`)
-- Foco visível ao navegar pelo teclado
-- Link "Pular para o conteúdo"
-- Texto alternativo nas imagens
-- As animações são desativadas quando o sistema pede menos movimento (`prefers-reduced-motion`)
-
-## Estrutura
-
-```
-├── index.html
-├── style.css
-├── script.js
-└── assets/
-    ├── foto-vinicius.jpg
-    └── curriculo-vinicius-rocha-pacheco.pdf
-```
-
-## Como rodar localmente
-
-Clone o repositório e abra o `index.html` no navegador:
-
-```bash
-git clone https://github.com/vinnyrocha-dev/vinnyrocha-dev.github.io.git
-```
-
-## Contato
-
-- LinkedIn: https://www.linkedin.com/in/vinipache/
-- E-mail: viniciusgp45@gmail.com
+- Foto entra saindo do desfoque; textos e botões são revelados da esquerda pra direita.
+- Linha de "terminal" que digita e apaga frases.
+- Luz azul que segue o mouse dentro do botão, e só o pedaço da borda perto do cursor acende.
+- Seta gira para ↗ no hover.
+- Grade de pontos no fundo acende em volta do cursor.
+- Ícones sociais com efeito ímã.
+- Tudo desliga se o sistema estiver com "reduzir movimento" ativado.
