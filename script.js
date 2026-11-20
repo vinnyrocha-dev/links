@@ -1,228 +1,221 @@
-// =========================================================
-// Links · Vinicius Rocha
-// =========================================================
+/* =========================================================
+   vini.dev | script.js
+   1. Configurações
+   2. Tema claro/escuro (salvo no localStorage)
+   3. Menu mobile (hambúrguer)
+   4. Links do WhatsApp
+   5. Números do GitHub (repositórios e seguidores)
+   6. Projetos (API do GitHub + lista fixa de reserva)
+   7. Reveal ao rolar (IntersectionObserver)
+   ========================================================= */
 
-// Se a pessoa desativou animações no sistema, a gente respeita
-const reduzirMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-// Só liga os efeitos de mouse em quem tem mouse (no celular não faz sentido)
-const temMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-const raiz = document.documentElement;
+/* ---------- 1. Configurações: edite aqui ---------- */
+const CONFIG = {
+  githubUser: 'vinnyrocha-dev',
+  whatsapp: '5521984541845', // 55 (Brasil) + DDD + número, só dígitos
+  whatsappMsg: 'Olá, Vinicius! Vi seu portfólio e gostaria de conversar.',
 
+  // Só estes repositórios aparecem na seção Projetos.
+  // Para adicionar um projeto novo, inclua o nome dele aqui E na lista fixa abaixo.
+  projetosDestaque: ['cadastro-clientes-dao-java', 'estudos-java'],
 
-// 1) Efeito de digitação -----------------------------------
-const frases = ['aberto a estágio', 'rio de janeiro, rj', 'sempre aprendendo'];
-const alvo = document.getElementById('texto-digitado');
-
-if (alvo && !reduzirMovimento) {
-  let indice = 0;                    // qual frase está na tela
-  let letras = frases[0].length;     // quantas letras estão visíveis
-  let apagando = true;
-
-  function digitar() {
-    if (apagando) {
-      letras--;
-      if (letras === 0) {
-        apagando = false;
-        indice = (indice + 1) % frases.length;  // próxima frase (volta pro início no fim)
-      }
-    } else {
-      letras++;
-      if (letras === frases[indice].length) {
-        apagando = true;
-        alvo.textContent = frases[indice].slice(0, letras);
-        return setTimeout(digitar, 1800);       // pausa com a frase completa
-      }
+  // Lista fixa: usada se a API do GitHub falhar ou estourar o limite.
+  projetosReserva: [
+    {
+      name: 'cadastro-clientes-dao-java',
+      description: 'CRUD de clientes em Java com padrão DAO e separação em camadas (domain, dao e interface).',
+      language: 'Java',
+      html_url: 'https://github.com/vinnyrocha-dev/cadastro-clientes-dao-java'
+    },
+    {
+      name: 'estudos-java',
+      description: 'Estudos de Java organizados por conceito: POO, classes abstratas, interfaces, herança, agregação e composição.',
+      language: 'Java',
+      html_url: 'https://github.com/vinnyrocha-dev/estudos-java'
     }
-    alvo.textContent = frases[indice].slice(0, letras);
-    setTimeout(digitar, apagando ? 35 : 85);
-  }
-
-  setTimeout(digitar, 2200);
-}
-
-
-// 2) Luz que segue o mouse dentro de cada botão -------------
-if (temMouse) {
-  document.querySelectorAll('.link').forEach((botao) => {
-    botao.addEventListener('pointermove', (e) => {
-      const caixa = botao.getBoundingClientRect();
-      botao.style.setProperty('--x', `${e.clientX - caixa.left}px`);
-      botao.style.setProperty('--y', `${e.clientY - caixa.top}px`);
-    });
-  });
-}
-
-
-// 3) Ícones sociais com efeito ímã --------------------------
-if (temMouse && !reduzirMovimento) {
-  document.querySelectorAll('.social').forEach((icone) => {
-    icone.addEventListener('pointermove', (e) => {
-      const caixa = icone.getBoundingClientRect();
-      const dx = e.clientX - (caixa.left + caixa.width / 2);
-      const dy = e.clientY - (caixa.top + caixa.height / 2);
-      icone.style.transform = `translate(${dx * 0.35}px, ${dy * 0.35}px)`;
-    });
-    icone.addEventListener('pointerleave', () => {
-      icone.style.transform = '';
-    });
-  });
-}
-
-
-// 4) Fundos animados ----------------------------------------
-// Os fundos em CSS (aurora, mesh, blobs, raios, ondas, perspectiva) não precisam de JS.
-// Aqui ficam só os que precisam: pontos (segue o cursor) e os desenhados no <canvas>.
-
-const tela = document.querySelector('.fundo-canvas');
-const ctx = tela.getContext('2d');
-const mouse = { x: -9999, y: -9999 };
-let largura = 0;
-let altura = 0;
-let quadro = null;   // id do requestAnimationFrame atual
-let efeitoAtual = null;
-
-window.addEventListener('pointermove', (e) => {
-  mouse.x = e.clientX;
-  mouse.y = e.clientY;
-  raiz.style.setProperty('--mx', `${e.clientX}px`);
-  raiz.style.setProperty('--my', `${e.clientY}px`);
-});
-
-function ajustarTamanho() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);   // tela retina, mas no máx 2x
-  largura = window.innerWidth;
-  altura = window.innerHeight;
-  tela.width = largura * dpr;
-  tela.height = altura * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-
-const efeitos = {
-
-  // Pontos: no celular (sem mouse) a luz passeia sozinha
-  pontos: {
-    iniciar() {},
-    desenhar(t) {
-      if (temMouse) return;
-      raiz.style.setProperty('--mx', `${largura / 2 + Math.sin(t / 2200) * largura * 0.35}px`);
-      raiz.style.setProperty('--my', `${altura * 0.3 + Math.cos(t / 3100) * altura * 0.2}px`);
-    },
-  },
-
-  // Constelação: pontos andando e se ligando por linhas quando ficam perto
-  constelacao: {
-    pontos: [],
-    iniciar() {
-      const quantidade = Math.max(50, Math.min(100, Math.round((largura * altura) / 9000)));
-      this.pontos = Array.from({ length: quantidade }, () => ({
-        x: Math.random() * largura,
-        y: Math.random() * altura,
-        vx: (Math.random() - 0.5) * 0.35,
-        vy: (Math.random() - 0.5) * 0.35,
-      }));
-    },
-    desenhar() {
-      ctx.clearRect(0, 0, largura, altura);
-      const lista = this.pontos;
-
-      for (const p of lista) {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0 || p.x > largura) p.vx *= -1;   // bate na borda e volta
-        if (p.y < 0 || p.y > altura) p.vy *= -1;
-      }
-
-      ctx.lineWidth = 1;
-      for (let i = 0; i < lista.length; i++) {
-        for (let j = i + 1; j < lista.length; j++) {
-          const d = Math.hypot(lista[i].x - lista[j].x, lista[i].y - lista[j].y);
-          if (d < 130) {
-            ctx.strokeStyle = `rgba(77, 141, 255, ${(1 - d / 130) * 0.45})`;
-            ctx.beginPath();
-            ctx.moveTo(lista[i].x, lista[i].y);
-            ctx.lineTo(lista[j].x, lista[j].y);
-            ctx.stroke();
-          }
-        }
-        // linha até o cursor
-        const dm = Math.hypot(lista[i].x - mouse.x, lista[i].y - mouse.y);
-        if (dm < 170) {
-          ctx.strokeStyle = `rgba(34, 211, 238, ${(1 - dm / 170) * 0.5})`;
-          ctx.beginPath();
-          ctx.moveTo(lista[i].x, lista[i].y);
-          ctx.lineTo(mouse.x, mouse.y);
-          ctx.stroke();
-        }
-      }
-
-      ctx.fillStyle = 'rgba(77, 141, 255, 0.85)';
-      for (const p of lista) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    },
-  },
-
-  // Chuva de código: letras de código Java caindo (estilo Matrix, bem discreto)
-  codigo: {
-    letras: 'publicstaticvoidmain(String[]args){}return;newclass@Override=>'.split(''),
-    tamanho: 16,
-    gotas: [],
-    ultimo: 0,
-    iniciar() {
-      const colunas = Math.ceil(largura / this.tamanho);
-      this.gotas = Array.from({ length: colunas }, () => Math.floor(Math.random() * -40));
-      ctx.clearRect(0, 0, largura, altura);
-    },
-    desenhar(t) {
-      if (t - this.ultimo < 70) return;       // cai devagar: 1 passo a cada 70ms
-      this.ultimo = t;
-      ctx.fillStyle = 'rgba(10, 11, 16, 0.14)'; // apaga um pouco => deixa rastro
-      ctx.fillRect(0, 0, largura, altura);
-      ctx.font = `${this.tamanho - 2}px 'JetBrains Mono', monospace`;
-      this.gotas.forEach((linha, i) => {
-        const letra = this.letras[Math.floor(Math.random() * this.letras.length)];
-        ctx.fillStyle = Math.random() < 0.05 ? '#EDF1F7' : '#4D8DFF';
-        ctx.fillText(letra, i * this.tamanho, linha * this.tamanho);
-        if (linha * this.tamanho > altura && Math.random() > 0.975) this.gotas[i] = 0;
-        this.gotas[i]++;
-      });
-    },
-  },
+  ]
 };
 
-function loop(t) {
-  efeitoAtual.desenhar(t);
-  quadro = requestAnimationFrame(loop);
+// Cores das linguagens (mesmas do GitHub)
+const LANG_COLORS = {
+  Java: '#b07219', JavaScript: '#f1e05a', TypeScript: '#3178c6', Python: '#3572A5',
+  HTML: '#e34c26', CSS: '#663399', SQL: '#e38c00', Shell: '#89e051'
+};
+
+const API = 'https://api.github.com';
+const CACHE_MIN = 30; // guarda as respostas por 30 min para não estourar o limite da API
+
+/* ---------- Utilitários ---------- */
+
+// localStorage pode falhar (modo privado etc.), então sempre com try/catch
+const storage = {
+  get(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } },
+  set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* ignora */ } }
+};
+
+// Busca JSON com cache simples
+async function fetchJSON(url) {
+  const key = 'cache:' + url;
+  const cached = storage.get(key);
+  if (cached && Date.now() - cached.t < CACHE_MIN * 60 * 1000) return cached.data;
+
+  const res = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
+  if (!res.ok) throw new Error('GitHub API: ' + res.status);
+  const data = await res.json();
+  storage.set(key, { t: Date.now(), data });
+  return data;
 }
 
-function trocarFundo(nome) {
-  document.body.dataset.fundo = nome;
-  cancelAnimationFrame(quadro);
-  efeitoAtual = efeitos[nome] || null;
-  if (!efeitoAtual) return;              // fundo só de CSS
-
-  ajustarTamanho();
-  efeitoAtual.iniciar();
-  if (reduzirMovimento) {
-    // sem animação: desenha alguns quadros e para
-    for (let i = 0; i < 60; i++) efeitoAtual.desenhar(i * 100);
-  } else {
-    quadro = requestAnimationFrame(loop);
-  }
+// Evita injeção de HTML ao montar os cards
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
 }
 
-window.addEventListener('resize', () => {
-  if (efeitoAtual) {
-    ajustarTamanho();
-    efeitoAtual.iniciar();
+/* ---------- 2. Tema claro/escuro ---------- */
+(function tema() {
+  const root = document.documentElement;
+  const btn = document.getElementById('btn-tema');
+  const meta = document.querySelector('meta[name="theme-color"]');
+
+  function aplicar(t) {
+    root.setAttribute('data-theme', t);
+    btn.setAttribute('aria-label', t === 'dark' ? 'Alternar para tema claro' : 'Alternar para tema escuro');
+    if (meta) meta.setAttribute('content', t === 'dark' ? '#0A0B10' : '#F7F8FA');
   }
-});
 
-window.trocarFundo = trocarFundo;
-trocarFundo(document.body.dataset.fundo || 'aurora');
+  aplicar(root.getAttribute('data-theme') || 'dark');
 
+  btn.addEventListener('click', () => {
+    const novo = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    aplicar(novo);
+    try { localStorage.setItem('tema', novo); } catch (e) { /* ignora */ }
+  });
+})();
 
-// 5) Ano do rodapé sempre atualizado ------------------------
-document.getElementById('ano').textContent = new Date().getFullYear();
+/* ---------- 3. Menu mobile ---------- */
+(function menu() {
+  const btn = document.getElementById('btn-menu');
+  const lista = document.getElementById('menu');
+
+  function fechar() {
+    lista.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.setAttribute('aria-label', 'Abrir menu');
+  }
+
+  btn.addEventListener('click', () => {
+    const aberto = lista.classList.toggle('open');
+    btn.setAttribute('aria-expanded', String(aberto));
+    btn.setAttribute('aria-label', aberto ? 'Fechar menu' : 'Abrir menu');
+  });
+
+  // Fecha ao clicar em um link ou apertar Esc
+  lista.querySelectorAll('a').forEach(a => a.addEventListener('click', fechar));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fechar(); });
+})();
+
+/* ---------- 4. Links do WhatsApp (botão do hero e botão flutuante) ---------- */
+(function whatsapp() {
+  const url = 'https://wa.me/' + CONFIG.whatsapp + '?text=' + encodeURIComponent(CONFIG.whatsappMsg);
+  document.querySelectorAll('.js-whatsapp').forEach(a => { a.href = url; });
+})();
+
+/* ---------- 5. Números do GitHub ---------- */
+(async function stats() {
+  const elRepos = document.getElementById('stat-repos');
+  const elSeg = document.getElementById('stat-followers');
+  try {
+    const user = await fetchJSON(`${API}/users/${CONFIG.githubUser}`);
+    elRepos.textContent = user.public_repos;
+    elSeg.textContent = user.followers;
+    document.querySelectorAll('[data-live]').forEach(b => { b.hidden = false; });
+  } catch (e) {
+    // Se a API falhar, mostra "n/d" (não disponível) em vez de inventar número
+    elRepos.textContent = 'n/d';
+    elSeg.textContent = 'n/d';
+  }
+})();
+
+/* ---------- 6. Projetos ---------- */
+(async function projetos() {
+  const lista = document.getElementById('lista-projetos');
+  const filtros = document.getElementById('filtros');
+  let repos;
+
+  try {
+    // Busca só os repositórios em destaque, em paralelo
+    repos = await Promise.all(
+      CONFIG.projetosDestaque.map(nome => fetchJSON(`${API}/repos/${CONFIG.githubUser}/${nome}`))
+    );
+    // Se a API não detectar a linguagem, usa a da lista fixa
+    repos = repos.map(r => {
+      const reserva = CONFIG.projetosReserva.find(p => p.name === r.name) || {};
+      return {
+        name: r.name,
+        description: r.description || reserva.description || 'Sem descrição.',
+        language: r.language || reserva.language || 'Outros',
+        html_url: r.html_url
+      };
+    });
+  } catch (e) {
+    repos = CONFIG.projetosReserva; // API falhou: usa a lista escrita no código
+  }
+
+  // Monta os cards
+  lista.innerHTML = repos.map(r => `
+    <article class="card project reveal" data-lang="${escapeHTML(r.language)}">
+      <h3>${escapeHTML(r.name)}</h3>
+      <p>${escapeHTML(r.description)}</p>
+      <div class="project-meta">
+        <span class="lang" style="--lang-color:${LANG_COLORS[r.language] || 'var(--accent)'}">${escapeHTML(r.language)}</span>
+        <a class="project-link" href="${escapeHTML(r.html_url)}" target="_blank" rel="noopener"
+           aria-label="Ver ${escapeHTML(r.name)} no GitHub">Ver no GitHub →</a>
+      </div>
+    </article>`).join('');
+
+  // Gera o filtro automaticamente a partir das linguagens encontradas
+  const linguagens = ['Todos', ...new Set(repos.map(r => r.language))];
+  filtros.innerHTML = linguagens.map((l, i) =>
+    `<button type="button" class="filter-btn" data-filter="${escapeHTML(l)}" aria-pressed="${i === 0}">${escapeHTML(l)}</button>`
+  ).join('');
+
+  filtros.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    const alvo = btn.dataset.filter;
+    filtros.querySelectorAll('.filter-btn').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+    lista.querySelectorAll('.project').forEach(card => {
+      card.hidden = alvo !== 'Todos' && card.dataset.lang !== alvo;
+    });
+  });
+
+  observarReveal(lista.querySelectorAll('.reveal'));
+})();
+
+/* ---------- 7. Reveal ao rolar ---------- */
+const reduzMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const observer = ('IntersectionObserver' in window && !reduzMovimento)
+  ? new IntersectionObserver((entradas) => {
+      entradas.forEach(entrada => {
+        if (!entrada.isIntersecting) return;
+        entrada.target.classList.add('visible');
+        observer.unobserve(entrada.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' })
+  : null;
+
+function observarReveal(elementos) {
+  elementos.forEach(el => {
+    // Delay escalonado: cada irmão com .reveal entra 80ms depois do anterior
+    const irmaos = Array.from(el.parentElement.children).filter(c => c.classList.contains('reveal'));
+    el.style.setProperty('--delay', (Math.min(irmaos.indexOf(el), 6) * 0.08) + 's');
+
+    if (observer) observer.observe(el);
+    else el.classList.add('visible'); // sem suporte ou com movimento reduzido: mostra direto
+  });
+}
+
+observarReveal(document.querySelectorAll('.reveal'));
